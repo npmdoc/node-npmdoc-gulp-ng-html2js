@@ -1,0 +1,217 @@
+<html><head></head><body><div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a href="https://github.com/marklagendijk/gulp-ng-html2js">gulp-ng-html2js (v0.2.2)</a>
+</h1>
+<h4>A Gulp plugin which generates AngularJS modules, which pre-load your HTML code into the $templateCache. This way AngularJS doesn't need to request the actual HTML files anymore.</h4>
+<div class="apidocSectionDiv"><a href="#apidoc.tableOfContents" id="apidoc.tableOfContents"><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.gulp-ng-html2js">module gulp-ng-html2js</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.gulp-ng-html2js.gulp-ng-html2js">
+            function <span class="apidocSignatureSpan"></span>gulp-ng-html2js
+            <span class="apidocSignatureSpan">(options)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.gulp-ng-html2js" id="apidoc.module.gulp-ng-html2js">module gulp-ng-html2js</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.gulp-ng-html2js.gulp-ng-html2js" id="apidoc.element.gulp-ng-html2js.gulp-ng-html2js">
+        function <span class="apidocSignatureSpan"></span>gulp-ng-html2js
+        <span class="apidocSignatureSpan">(options)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">gulp-ng-html2js = function (options) {
+    "use strict";
+
+    function ngHtml2Js(file, callback) {
+        if (file.isStream()) {
+            return callback(new Error("gulp-ng-html2js: Streaming not supported"));
+        }
+
+        if (file.isBuffer()) {
+            file.contents = new Buffer(generateModuleDeclaration(file, options));
+            var extension = '.js';
+            if(options &amp;&amp; options.extension) {
+              extension = options.extension;
+            }
+            file.path = gutil.replaceExtension(file.path, extension);
+        }
+
+        return callback(null, file);
+    }
+
+    function generateModuleDeclaration(templateFile, options) {
+        var template = getTemplate();
+        var templateParams = getTemplateParams();
+
+        return _.template(template)(templateParams);
+
+
+        function getTemplate() {
+          var template;
+
+            if (options &amp;&amp; options.template) {
+                return options.template;
+            }
+            else if (options &amp;&amp; options.moduleName) {
+                if (options.declareModule === false) {
+                    template = TEMPLATES.SINGLE_DECLARED_MODULE;
+                }
+                else {
+                    return TEMPLATES.SINGLE_MODULE;
+                }
+            }
+            else {
+                template = TEMPLATES.MODULE_PER_FILE;
+            }
+
+			if (options &amp;&amp; options.export === 'commonjs') {
+				template = TEMPLATES.COMMON_JS_EXPORTS + template;
+			}
+			else if (options &amp;&amp; options.export === 'system') {
+				template = TEMPLATES.SYSTEM_JS_EXPORTS + template;
+			}
+
+			return template;
+        }
+
+        function getTemplateParams() {
+            var params = {
+                template: {
+                    url: getTemplateUrl()
+                }
+            };
+            params.moduleName = getModuleName(params.template.url);
+            params.template.content = String(templateFile.contents);
+            params.template.escapedContent = getEscapedTemplateContent(params.template.content);
+            params.template.prettyEscapedContent = getPrettyEscapedContent(params.template.content);
+
+            return params;
+        }
+
+        function getModuleName(templateUrl) {
+            if (options &amp;&amp; _.isFunction(options.moduleName)) {
+                return options.moduleName(templateFile);
+            }
+            else if (options &amp;&amp; options.moduleName) {
+                return options.moduleName;
+            }
+            else {
+                return templateUrl;
+            }
+        }
+
+        function getTemplateUrl() {
+            // Start with the relative file path
+            var url = templateFile.relative;
+
+            // Replace '\' with '/' (Windows)
+            url = url.replace(/\\/g, "/");
+
+            if (options) {
+                // Remove the stripPrefix
+                if (_.startsWith(url, options.stripPrefix)) {
+                    url = url.replace(options.stripPrefix, "");
+                }
+                // Add the prefix
+                if (options.prefix) {
+                    url = options.prefix + url;
+                }
+
+                // Rename the url
+                if (_.isFunction(options.rename)) {
+                    url = options.rename(url, templateFile);
+                }
+            }
+
+            return url;
+        }
+    }
+
+    function getEscapedTemplateContent(templateContent) {
+        return templateContent
+            .replace(/\\/g, "\\\\")
+            .replace(/'/g, "\\'")
+            .replace(/\r?\n/g, "\\n");
+    }
+
+    function getPrettyEscapedContent(templateContent) {
+        return templateContent
+            .replace(/\\/g, "\\\\")
+            .replace(/'/g, "\\'")
+            .replace(/\r?\n/g, "\\n' +\n    '");
+    }
+
+    return map(ngHtml2Js);
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
+</body></html>
